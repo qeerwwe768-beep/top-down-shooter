@@ -4,6 +4,10 @@ const canvas = document.getElementById("gameCanvas");
 
 const ctx = canvas.getContext("2d");
 
+// загрузка спрайта игрока
+const playerImage = new Image();
+playerImage.src = "Игрок1.png";
+
 const bullets = []; // массив пуль
 
 const enemies = []; // массив врагов
@@ -12,9 +16,12 @@ let score = 0; // счет очков
 
 let gameOver = false;// конец игры
 
+let gameStarted = false; //состояние игры
+
 const explosions = []; // массив взрыва врага при попадании
 
 let level = 1; // переменная уровня
+
 
 //====================таймер спавна врагов=================
 let enemySpawnTimer = 0;
@@ -29,8 +36,8 @@ function clearScreen() {
 const player = {
     x: 400,
     y: 300,
-    width: 40,
-    height: 40,
+    width: 56,
+    height: 56,
     color: "lime",
     speed: 4, // скорость передвижения
     lives: 3 ,// жизни игрока
@@ -43,12 +50,21 @@ invincibleDuration: 60 // ~1 секунда
 const keys = {};// нажате кнопки
 
 // нажали клавишу
-window.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", (e) => {
     keys[e.key] = true;
-    if (e.code === "Space") {
+
+    // старт игры
+    if (!gameStarted && e.key === "Enter") {
+        gameStarted = true;
+        gameLoop();
+    }
+
+    // стрельба ТОЛЬКО после старта
+    if (gameStarted && e.code === "Space") {
         shoot();
     }
-     if (gameOver && e.key === "r") {
+     
+    if (gameOver && e.key === "r") {
         resetGame();
     }
 });
@@ -112,10 +128,20 @@ function movePlayer() {
     }
 }
 
-// ==================функция рисования игрока====================
+// ==================функция рисования игрока и мгания при получении урона====================
 function drawPlayer() {
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // эффект мигания при неуязвимости
+    if (player.invincible && Math.floor(Date.now() / 100) % 2 === 0) {
+        return;
+    }
+// отрисовка изображения
+    ctx.drawImage(
+        playerImage,
+        player.x,
+        player.y,
+        player.width,
+        player.height
+    );
 }
 //=====================функция спавна врагов======================
 function spawnEnemy() {
@@ -186,7 +212,7 @@ function drawScore() {
     ctx.fillStyle = "white";
     ctx.font = "20px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Score: " + score, 10, 25);
+    ctx.fillText("Очки: " + score, 10, 25);
 }
 
 //======================функция столкновения игрока и врага=================
@@ -216,7 +242,7 @@ function drawLives() {
     ctx.fillStyle = "white";
     ctx.font = "20px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Lives: " + player.lives, 10, 50);
+    ctx.fillText("Жизни: " + player.lives, 10, 50);
 }
 
 //==========================экран конец игры============================
@@ -226,13 +252,13 @@ function drawGameOver() {
     ctx.textAlign = "center";
 
     ctx.font = "48px Arial";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("ИГРА ОКОНЧЕНА", canvas.width / 2, canvas.height / 2);
 
     ctx.font = "24px Arial";
-    ctx.fillText("Score: " + score, canvas.width / 2, canvas.height / 2 + 40);
+    ctx.fillText("Очки: " + score, canvas.width / 2, canvas.height / 2 + 40);
 
     ctx.font = "18px Arial";
-    ctx.fillText("Press R to Restart", canvas.width / 2, canvas.height / 2 + 80);
+    ctx.fillText("Нажмите R чтобы начать заново", canvas.width / 2, canvas.height / 2 + 80);
 }
 // ========================обновление таймера неуязвимости===================
 function updateInvincibility() {
@@ -244,15 +270,7 @@ function updateInvincibility() {
         }
     }
 }
-//====================мигание игрока, если получил урон=====================
-function drawPlayer() {
-    if (player.invincible && Math.floor(player.invincibleTimer / 5) % 2 === 0) {
-        return; // пропускаем отрисовку (мигание)
-    }
 
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-}
 //======================создание взрыва при попадании во врага==============
 function createExplosion(x, y) {
     explosions.push({
@@ -308,7 +326,7 @@ function drawLevel() {
     ctx.fillStyle = "white";
     ctx.font = "20px Arial";
     ctx.textAlign = "left";
-    ctx.fillText("Level: " + level, 10, 75);
+    ctx.fillText("Уровень: " + level, 10, 75);
 }
 
 //==========================функция сброса игры================
@@ -331,8 +349,36 @@ function resetGame() {
 
     gameLoop();
 }
+//======================= 
+function drawStartScreen() {
+    clearScreen();
+
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+
+    ctx.font = "48px Arial";
+    ctx.fillText(
+        "SPACE PUGNATOR",
+        canvas.width / 2,
+        canvas.height / 2 - 40
+    );
+
+    ctx.font = "24px Arial";
+    ctx.fillText(
+        "Нажмите ENTER чтобы начать",
+        canvas.width / 2,
+        canvas.height / 2 + 20
+    );
+}
+
 // ====================игровой цикл=======================
 function gameLoop() {
+
+    if (!gameStarted) {
+        drawStartScreen();
+        return;
+    }
+
     if (gameOver) {
         drawGameOver();
         return;
@@ -358,4 +404,4 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 // ===================запуск игры===========================
-gameLoop();
+drawStartScreen();
